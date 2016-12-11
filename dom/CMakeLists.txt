@@ -28,7 +28,8 @@ if( OPT_COLLADA14 )
   install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/1.4 DESTINATION ${COLLADA_DOM_INCLUDE_INSTALL_DIR} COMPONENT ${COMPONENT_PREFIX}-dev  PATTERN ".svn" EXCLUDE PATTERN ".~" EXCLUDE)
 endif()
 
-add_library(collada-dom SHARED ${COLLADA_BASE_SOURCES})
+set(COLLADA_DOM_LIBRARY_SUFFIX)
+add_library(collada-dom STATIC ${COLLADA_BASE_SOURCES})
 target_link_libraries(collada-dom ${COLLADA_LIBS})
 set_target_properties(collada-dom PROPERTIES
   COMPILE_FLAGS "${COLLADA_COMPILE_FLAGS}"

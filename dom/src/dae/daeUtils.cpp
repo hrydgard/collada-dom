@@ -25,6 +25,7 @@
 
 using namespace std;
 
+
 cdom::systemType cdom::getSystemType() {
 #ifdef WIN32
 	return Windows;

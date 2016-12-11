@@ -2,6 +2,8 @@ cmake_minimum_required (VERSION 2.6.0)
 project (collada-dom)
 set( CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE )
 
+add_definitions(-DNO_BOOST)
+
 # Define here the needed parameters
 set (COLLADA_DOM_VERSION_MAJOR 2)
 set (COLLADA_DOM_VERSION_MINOR 4)
@@ -38,7 +40,7 @@ message(STATUS "installing to ${CMAKE_INSTALL_PREFIX}")
 ##############################################################################
 
 option(OPT_COLLADA15 "Enable collada 1.5 compilation" ON)
-option(OPT_COLLADA14 "Enable collada 1.4 compilation" ON)
+option(OPT_COLLADA14 "Enable collada 1.4 compilation" OFF)
 option(OPT_COMPILE_VIEWER "Enable collada viewer compilation" OFF)
 option(OPT_COMPILE_FX "Enable collada fx compilation" OFF)
 option(OPT_COMPILE_RT "Enable collada rt compilation" OFF)
@@ -61,7 +63,7 @@ if(OPT_DOUBLE_PRECISION)
   set(COLLADA_PRECISION "dp")
   set(CPACK_DEBIAN_PACKAGE_CONFLICTS "${CPACK_DEBIAN_PACKAGE_NAME}-sp")
   set(CPACK_DEBIAN_PACKAGE_NAME "${CPACK_DEBIAN_PACKAGE_NAME}-dp")
-  set(COLLADA_DOM_EXTERNAL_FLAGS "${COLLADA_DOM_EXTERNAL_FLAGS} -DCOLLADA_DOM_DAEFLOAT_IS64") # daeFloat is 64 bit
+  set(COLLADA_DOM_EXTERNAL_FLAGS "${COLLADA_DOM_EXTERNAL_FLAGS} -DNO_BOOST -DNO_ZAE -DCOLLADA_DOM_DAEFLOAT_IS64") # daeFloat is 64 bit
   message(STATUS "compiling with double float precision")
 else()
   set(COLLADA_PRECISION "sp")
@@ -117,6 +119,7 @@ if( CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX )
   add_definitions("-fno-strict-aliasing -Wall")
 endif()
 
+
 if( CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX )
   set(CMAKE_CXX_FLAGS_RELEASE "-O2")# -DNDEBUG -DBOOST_DISABLE_ASSERTS -D_SECURE_SCL=0") # this practically removes all checks making it a very dangerous options to play with
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
@@ -143,45 +146,6 @@ set(COLLADA_DOM_INCLUDE_INSTALL_DIR "include/collada-dom${COLLADA_DOM_SOVERSION}
 set(COLLADA_DOM_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/dom/include)
 set(COLLADA_DOM_LINK_DIRS "")
 
-if( MSVC )
-  # force multi-threaded DLL boost
-  set(Boost_USE_MULTITHREAD ON)
-  set(Boost_USE_STATIC_LIBS OFF)
-  set(Boost_USE_STATIC_RUNTIME OFF)
-  set(Boost_CFLAGS "-DBOOST_ALL_DYN_LINK -DBOOST_ALL_NO_LIB")
-endif()
-  
-set(Boost_ADDITIONAL_VERSIONS "1.46" "1.45" "1.44" "1.43" "1.42" "1.41" "1.40" "1.39" "1.38" "1.37.0" "1.37" "1.35.0" "1.34.1" "1.34.0" "1.34" "1.33.1" "1.33.0" "1.33")
-
-if( NOT $ENV{BOOST_INCLUDEDIR} STREQUAL "" )
-  set(Boost_INCLUDE_DIR $ENV{BOOST_INCLUDEDIR})
-endif()
-if( NOT $ENV{BOOST_LIBRARYDIR} STREQUAL "" )
-  set(Boost_LIBRARY_DIRS $ENV{BOOST_LIBRARYDIR})
-endif()
-find_package(Boost COMPONENTS filesystem system REQUIRED)
-
-message(STATUS "found boost version: ${Boost_VERSION}")
-
-if( Boost_FOUND )
-  include_directories(${Boost_INCLUDE_DIRS})
-  set(COLLADA_DOM_LINK_DIRS ${COLLADA_DOM_LINK_DIRS} ${Boost_LIBRARY_DIRS})
-elseif(Boost_VERSION AND NOT "${Boost_VERSION}" STREQUAL "0")
-  include_directories(${Boost_INCLUDE_DIRS})
-  set(COLLADA_DOM_LINK_DIRS ${COLLADA_DOM_LINK_DIRS} ${Boost_LIBRARY_DIRS})
-else()
-  message(FATAL_ERROR "Could not find boost libraries!")
-endif()
-
-set(COLLADA_DOM_BOOST_INCLUDE_DIRS)
-foreach(idir ${Boost_INCLUDE_DIRS})
-  set(COLLADA_DOM_BOOST_INCLUDE_DIRS "${COLLADA_DOM_BOOST_INCLUDE_DIRS} -I${idir}")
-endforeach()
-
-set(COLLADA_DOM_BOOST_LIB_DIRS)
-foreach(ldir ${Boost_LIBRARY_DIRS})
-  set(COLLADA_DOM_BOOST_LIB_DIRS "${COLLADA_DOM_BOOST_LIB_DIRS} -L${ldir}")
-endforeach()
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   set(EXTRA_COMPILE_FLAGS "${COLLADA_DOM_EXTERNAL_FLAGS} -DCOLLADA_DOM_NAMESPACE -fPIC")
@@ -199,26 +163,9 @@ if( NOT ZLIB_FOUND )
   set(ZLIB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dom/external-libs/zlib-1.2.5)
 endif()
 
-find_package(LibXml2)
-if( LIBXML2_FOUND )
-  include_directories(${LIBXML2_INCLUDE_DIR})
-  add_definitions(${LIBXML2_DEFINITIONS} -DDOM_INCLUDE_LIBXML)
-  message(STATUS "libxml2 found")
-else()
-  if( MSVC )
-    set(LIBXML2_LIBRARY_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/dom/external-libs/libxml2-new/lib")
-    set(LIBXML2_LIBRARIES "${LIBXML2_LIBRARY_DIRS}/libxml2-${MSVC_PREFIX}-mt.lib")
-    set(LIBXML2_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dom/external-libs/libxml2-new/include)
-    set(LIBXML2_DEFINITIONS)
-    set(LIBXML2_FOUND 1)
-    include_directories(${LIBXML2_INCLUDE_DIR})
-    add_definitions(-DDOM_INCLUDE_LIBXML)
-    # have to install the DLLs
-    install(DIRECTORY "${LIBXML2_LIBRARY_DIRS}/" DESTINATION lib${LIB_SUFFIX} FILES_MATCHING PATTERN "*-${MSVC_PREFIX}-*.dll")
-  else()
-    message(FATAL_ERROR "Could not find libxml2")
-  endif()
-endif()
+add_definitions(-DDOM_INCLUDE_LIBXML)
+set(LIBXML2_FOUND 1)
+set(LIBXML2_LIBRARIES)
 
 pkg_check_modules(minizip minizip)
 if(minizip_FOUND)
